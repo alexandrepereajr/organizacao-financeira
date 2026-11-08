@@ -1,0 +1,15 @@
+.page { min-height: 100vh; display: grid; place-items: center; padding: 1.5rem; }
+.card { width: 100%; max-width: 24rem; padding: 2rem; border: 1px solid rgba(128, 128, 128, 0.35); border-radius: 0.75rem; }
+.title { margin: 0 0 0.25rem; font-size: 1.5rem; }
+.subtitle { margin: 0 0 1.25rem; opacity: 0.7; }
+.form { display: grid; gap: 1rem; }
+.label { display: grid; gap: 0.35rem; font-size: 0.9rem; }
+.input { padding: 0.6rem 0.75rem; border: 1px solid rgba(128, 128, 128, 0.5); border-radius: 0.5rem; font: inherit; background: transparent; color: inherit; }
+.button { padding: 0.65rem 1rem; border: 0; border-radius: 0.5rem; font: inherit; font-weight: 600; cursor: pointer; background: #2563eb; color: #fff; }
+.button:hover { background: #1d4ed8; }
+.erro, .aviso { margin: 0 0 1rem; padding: 0.6rem 0.75rem; border-radius: 0.5rem; font-size: 0.9rem; }
+.erro { background: rgba(220, 38, 38, 0.15); color: #dc2626; }
+.aviso { background: rgba(37, 99, 235, 0.15); color: #2563eb; }
+.footer { margin: 1.25rem 0 0; font-size: 0.9rem; }
+.footer a { color: #2563eb; }
+.code { font-family: monospace; font-size: 1.25rem; letter-spacing: 0.1em; }
