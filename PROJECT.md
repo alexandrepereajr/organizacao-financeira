@@ -54,6 +54,8 @@ organizacao-financeira/
   tsconfig.json              # alias @/* aponta para ./src/*
   supabase/migrations/       # SQL das migrations 1 a 21 (histórico; já aplicadas)
                              # contas-teste.sql: cria as contas de teste (seção 10)
+  supabase/scripts/          # scripts avulsos (não são migrations)
+                             # apagar-todos-os-dados.sql: zera o banco (seção 10)
   src/
     proxy.ts                 # entrada do proxy (Next.js 16); chama updateSession
     app/
@@ -269,6 +271,7 @@ A partir da migration 14, "dono" quer dizer a **conta ativa** (`active_account()
   4. **Testar:** cadastrar uma conta nova com um e-mail próprio, abrir o link recebido e conferir que cai na home já logado. Tentar entrar antes de confirmar deve mostrar "Seu e-mail ainda não foi confirmado" e o formulário de reenvio.
   Observações: como o link usa a Site URL, um cadastro feito no `npm run dev` recebe link para a produção. O serviço de e-mail padrão envia poucos e-mails por hora e pode entregar só para endereços da equipe do projeto no Supabase; se alguém não receber, esse é o motivo provável (solução: SMTP próprio, em *Emails > SMTP Settings*).
 - **Supabase:** as migrations 1 a 21 foram executadas no SQL Editor, na ordem; não executá-las de novo (dá erro de já existe). Mudanças futuras no banco entram como novas migrations numeradas em `supabase/migrations/`, uma por arquivo, continuando a partir da 22.
+- **Começar do zero:** `supabase/scripts/apagar-todos-os-dados.sql` apaga todos os dados e todas as contas (inclusive as de teste), menos os e-mails listados em `v_manter`, que ficam vazios e com as categorias padrão. Não tem volta. Atenção: o desenvolvimento local usa o **mesmo** Supabase da produção; depois de começar a usar de verdade, não rodar o `contas-teste.sql` nele (os dados de teste se misturariam aos reais). Para voltar a ter contas de teste, o ideal é criar um segundo projeto no Supabase (o plano gratuito permite dois) e apontar o `.env.local` para ele.
 - **Contas de teste:** `supabase/migrations/contas-teste.sql` cria as contas Ana, Bruno, Carla (normais) e Casa (compartilhada), com dados de exemplo; pode ser executado mais de uma vez. No `npm run dev`, a tela de login mostra o painel "Acesso rápido" para entrar nelas (código em `src/features/dev/`); em produção o painel não funciona.
 
 ## 11. Convenções de código
