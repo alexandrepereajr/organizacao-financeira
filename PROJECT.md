@@ -57,9 +57,9 @@ organizacao-financeira/
   src/
     proxy.ts                 # entrada do proxy (Next.js 16); chama updateSession
     app/
-      layout.tsx             # inclui a AccountBar (troca de conta)
-      globals.css
-      page.tsx               # home: dados da conta ativa e links para as telas
+      layout.tsx             # título do app, AppNav e AccountBar em todas as telas
+      globals.css            # tokens de cor (claro/escuro) e estilos básicos
+      page.tsx               # home: saudação, código e atalhos agrupados
       login/page.tsx         # com o painel de acesso rápido em desenvolvimento
       cadastro/page.tsx      # nome, username, e-mail, senha, conta compartilhada
       auth/confirm/route.ts  # destino do link do e-mail de confirmação
@@ -76,11 +76,13 @@ organizacao-financeira/
       pendentes/page.tsx     # conta compartilhada: compras incompletas
       visoes/planilha/page.tsx
     components/
+      AppNav.tsx             # navegação: barra no topo; no celular, abas embaixo
       AccountBar.tsx         # seletor da conta ativa (só aparece com 2+ contas)
       MonthStepper.tsx       # navegação mês a mês
       ui.module.css          # estilos comuns das telas
     features/
       auth/                  # login, cadastro, sair, reenvio da confirmação
+      home/                  # atalhos da tela inicial
       accounts/              # contas disponíveis e troca da conta ativa
       contacts/              # contatos por código/username ou só nome
       cards/                 # cartões (incluindo os de participantes)
@@ -210,7 +212,7 @@ A partir da migration 14, "dono" quer dizer a **conta ativa** (`active_account()
 | 9d | Editar e excluir compra, com lista de compras | Concluído |
 | 10 | Exportar para CSV/Excel (backup) | Fora do escopo (decidido em 17/11/2026) |
 | 11 | Confirmação de e-mail | Código pronto; falta configurar o Supabase (seção 10) |
-| 12 | Acabamento visual e navegação | Pendente |
+| 12 | Acabamento visual e navegação | Concluído |
 
 ## 7. Decisões e pontos de atenção
 
@@ -236,8 +238,7 @@ A partir da migration 14, "dono" quer dizer a **conta ativa** (`active_account()
 ## 8. Próximos passos
 
 1. **Parte 11, confirmação de e-mail (pendente, configuração manual):** código pronto e testado localmente; falta o passo a passo do Supabase na seção 10 ("Supabase, confirmação de e-mail"), incluindo o teste com um cadastro real.
-2. **Parte 12, acabamento visual:** navegação entre telas, estilos globais, título da página (hoje "Create Next App") e planilha legível no celular.
-3. **Pendências técnicas:** mostrar `created_by` onde fizer sentido; levar `create_purchase` a usar `check_purchase_input` (hoje a validação está repetida nas duas).
+2. **Pendências técnicas:** mostrar `created_by` onde fizer sentido; levar `create_purchase` a usar `check_purchase_input` (hoje a validação está repetida nas duas).
 
 ## 9. Histórico de atualizações
 
@@ -248,6 +249,7 @@ A partir da migration 14, "dono" quer dizer a **conta ativa** (`active_account()
 - **17/11/2026:** documento atualizado com o que foi feito entre 09 e 11/11 (migrations 8 a 19, partes 5 a 9, categorias, contas compartilhadas, destinos de entradas) e com os próximos passos.
 - **17/11/2026:** regra de privacidade das compras (quem é citado vê só a própria parte; migration 20). Parte 9d: lista de compras do mês (`/compras`), edição (`/compras/[id]/editar`) e exclusão, com as funções `update_purchase` e `delete_purchase` (migration 21). Migrations 20 e 21 aplicadas e testadas: citado vê só a própria linha; editar parcelada e recorrente (divisão da série), encerrar, excluir, recusa de soma errada e bloqueio de edição/exclusão por quem foi citado. Fluxo de editar e excluir também testado pela tela.
 - **17/11/2026:** exportação para CSV saiu do escopo. Parte 11: rota `/auth/confirm`, mensagem para e-mail não confirmado e reenvio da confirmação no login. Testado localmente: link inválido, reenvio e login normal. Falta configurar o Supabase (seção 10) e testar com um cadastro real.
+- **17/11/2026:** parte 12, visual. Corrigido o carregamento dos CSS Modules (Tailwind removido). Tokens de cor com tema claro e escuro, navegação (topo no computador, abas embaixo no celular), home com atalhos, título "Organização Financeira", planilha com coluna fixa estreita no celular e telas sem rolagem lateral a partir de 320 px. `await connection()` nas páginas de cartões, categorias, contatos, contas, participantes e pendentes.
 
 ## 10. Ambiente, variáveis e deploy
 
@@ -271,12 +273,13 @@ A partir da migration 14, "dono" quer dizer a **conta ativa** (`active_account()
 
 ## 11. Convenções de código
 
-- Next.js 16 com App Router, TypeScript e imports pelo alias `@/` (que aponta para `src/`). Estilos com CSS Modules; não assumir Tailwind.
+- Next.js 16 com App Router, TypeScript e imports pelo alias `@/` (que aponta para `src/`). Estilos com CSS Modules; o projeto **não usa Tailwind** (foi removido em 17/11/2026, ver seção 12).
+- **Cores e visual:** usar sempre os tokens do `globals.css` (`var(--primary)`, `var(--surface)`, `var(--border)`, `var(--muted)`, `var(--danger)` etc.), nunca cores fixas, para funcionar nos temas claro e escuro. Containers em grid usam `grid-template-columns: minmax(0, 1fr)` para não estourar a largura no celular. A navegação fica no `AppNav`; telas novas que devem aparecer nela entram na lista `ITENS`.
 - **Proxy:** `src/proxy.ts` exporta a função `proxy` e chama `updateSession` (em `src/lib/supabase/proxy.ts`). Ela renova a sessão com `supabase.auth.getUser()`, deixa `/login` e `/cadastro` públicas, manda quem não está logado para `/login` e quem está logado em página pública para `/`. `/auth/confirm` fica aberta para todos (lista `OPEN_PATHS`), logados ou não.
 - **Cliente Supabase no servidor:** `createClient()` de `@/lib/supabase/server` (assíncrono, usa os cookies); criar um por requisição. O cliente de navegador ainda não existe; quando for necessário, usar `createBrowserClient` do @supabase/ssr.
 - **Gravações:** Server Actions em `src/features/<funcionalidade>/actions.ts`, com `'use server'`. Em caso de erro, redirecionam com um código (`?erro=codigo`) e os textos ficam em `messages.ts`.
 - **Páginas que leem searchParams ou cookies** exportam `export const instant = false` antes do componente. Sem isso o Next.js 16.4 mostra o erro blocking-prerender-runtime e o build pode falhar. Se aparecer erro de `Date.now()` em uma página, chamar `await connection()` (de `next/server`) no início dela.
-- **Páginas que leem a data de hoje** (`hojeEmSaoPaulo()`, em `src/features/purchases/calc.ts`) ou que só chamam `supabase.auth.getUser()` começam com `await connection()`.
+- **Páginas que leem a data de hoje** (`hojeEmSaoPaulo()`, em `src/features/purchases/calc.ts`) ou que fazem consultas (que chamam `supabase.auth.getUser()`) começam com `await connection()`. Hoje todas as páginas logadas fazem isso.
 - **Conta ativa:** sempre usar o `createClient()` de `@/lib/supabase/server`, que envia a conta ativa ao banco. Não filtrar por `user.id` nas consultas: o RLS já filtra pela conta ativa. Atenção: em compras, o RLS também devolve as compras de outras contas em que a conta foi citada; para listar só as da conta, filtrar `owner_id` pelo id da conta ativa (de `listAccounts()`). Para os dados da conta ativa, usar a função `current_account`.
 - **Chamadas `rpc()`** devolvem `unknown` (não há tipos gerados do banco): declarar o tipo do resultado onde ele é usado.
 - **Compras** são sempre criadas pela função `create_purchase`, e entradas por `create_income`. Valores monetários em numeric(12,2); meses de referência sempre no dia 1; no código, valores em centavos.
@@ -289,6 +292,7 @@ A partir da migration 14, "dono" quer dizer a **conta ativa** (`active_account()
 - **Erro Unexpected end of JSON input no cadastro:** URL do Supabase incorreta; precisa ser a Project URL da página de API.
 - **Comando npm não reconhecido no terminal do VS Code:** fechar o VS Code por completo e abrir de novo (o PATH só atualiza em programas abertos depois da instalação do Node).
 - **Chave secret colada por engano:** trocar pela anon/publishable e gerar nova secret no Supabase.
+- **Telas sem estilo (classes vazias):** a regra `turbopack.rules["*.css"]` do Tailwind no `next.config.ts` fazia os CSS Modules virarem CSS global, e todo `styles.x` ficava vazio. Removidos a regra e o Tailwind.
 - **Avisos de prerender no Next.js 16.4:** resolvidos com `export const instant = false` nas páginas dinâmicas.
 - **Build falha com `Type 'unknown[]' is not assignable`:** sem tipos gerados do banco, `supabase.rpc()` devolve `unknown[]`. Declarar o tipo onde o dado é usado (por exemplo `shares as RawShare[]`); `.overrideTypes()` não resolve nesse caso. Rodar `npm run build` antes de subir, porque o `npm run dev` não checa tipos.
 - **Erro de `new Date()`/`Date.now()` no prerender mesmo com `instant = false`:** chamar `await connection()` na primeira linha da página. Vale também para páginas que só chamam `supabase.auth.getUser()`, que usa `Date.now()` por dentro.

@@ -1,0 +1,169 @@
+/* Barra superior (todas as larguras) */
+.topo {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  background: color-mix(in srgb, var(--surface) 92%, transparent);
+  backdrop-filter: saturate(1.4) blur(8px);
+  border-bottom: 1px solid var(--border);
+}
+
+.topoConteudo {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+  max-width: 72rem;
+  height: var(--nav-height);
+  margin: 0 auto;
+  padding: 0 1.25rem;
+}
+
+.marca {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  color: var(--foreground);
+  font-weight: 700;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.marca:hover {
+  color: var(--foreground);
+}
+
+.logo {
+  display: grid;
+  place-items: center;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 0.55rem;
+  background: var(--primary);
+  color: var(--on-primary);
+  font-size: 0.75rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+
+.linksTopo {
+  display: flex;
+  gap: 0.25rem;
+  flex: 1;
+}
+
+.link,
+.linkAtivo {
+  padding: 0.4rem 0.75rem;
+  border-radius: 999px;
+  color: var(--muted);
+  font-size: 0.92rem;
+  font-weight: 500;
+  text-decoration: none;
+}
+
+.link:hover {
+  color: var(--foreground);
+  background: var(--surface-muted);
+}
+
+.linkAtivo,
+.linkAtivo:hover {
+  color: var(--primary);
+  background: var(--primary-soft);
+}
+
+.novaCompra {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin-left: auto;
+  padding: 0.5rem 0.95rem;
+  border-radius: 999px;
+  background: var(--primary);
+  color: var(--on-primary);
+  font-size: 0.9rem;
+  font-weight: 600;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.novaCompra:hover {
+  background: var(--primary-hover);
+  color: var(--on-primary);
+}
+
+.novaCompra span {
+  font-size: 1.15rem;
+  line-height: 1;
+}
+
+/* Telas médias: só o ícone da marca, para os links caberem */
+@media (max-width: 64rem) {
+  .marcaTexto {
+    display: none;
+  }
+}
+
+/* Barra de abas: só no celular */
+.abas {
+  display: none;
+}
+
+@media (max-width: 47.99rem) {
+  .topoConteudo {
+    gap: 0.75rem;
+    padding: 0 1rem;
+  }
+
+  .linksTopo {
+    display: none;
+  }
+
+  .marcaTexto {
+    display: inline;
+    font-size: 0.95rem;
+  }
+
+  .novaCompra {
+    padding: 0.45rem 0.8rem;
+    font-size: 0.85rem;
+  }
+
+  .abas {
+    position: fixed;
+    inset: auto 0 0 0;
+    z-index: 20;
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    height: calc(var(--tabbar-height) + env(safe-area-inset-bottom));
+    padding-bottom: env(safe-area-inset-bottom);
+    background: var(--surface);
+    border-top: 1px solid var(--border);
+  }
+
+
+  .aba,
+  .abaAtiva {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.15rem;
+    color: var(--muted);
+    font-size: 0.7rem;
+    font-weight: 500;
+    text-decoration: none;
+  }
+
+  .abaAtiva,
+  .abaAtiva:hover {
+    color: var(--primary);
+  }
+}
+
+/* Celulares bem estreitos: só o ícone da marca */
+@media (max-width: 23rem) {
+  .marcaTexto {
+    display: none;
+  }
+}

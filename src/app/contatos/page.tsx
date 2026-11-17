@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import { connection } from 'next/server'
 import { AddByCodeForm } from '@/features/contacts/AddByCodeForm'
 import { AddByNameForm } from '@/features/contacts/AddByNameForm'
 import { ContactList } from '@/features/contacts/ContactList'
@@ -11,6 +12,8 @@ export const instant = false
 type Props = { searchParams: Promise<{ erro?: string; aviso?: string }> }
 
 export default async function ContatosPage({ searchParams }: Props) {
+  // As consultas chamam getUser(), que usa Date.now(): precisa rodar na requisição
+  await connection()
   const { erro, aviso } = await searchParams
   const [codigo, contacts] = await Promise.all([getMyShareCode(), listContacts()])
   const msgErro = mensagem(erro)

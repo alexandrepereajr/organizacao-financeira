@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import { connection } from 'next/server'
 import { InviteForm } from '@/features/memberships/InviteForm'
 import { MembershipList } from '@/features/memberships/MembershipList'
 import { mensagem } from '@/features/memberships/messages'
@@ -10,6 +11,8 @@ export const instant = false
 type Props = { searchParams: Promise<{ erro?: string; aviso?: string }> }
 
 export default async function ParticipantesPage({ searchParams }: Props) {
+  // As consultas chamam getUser(), que usa Date.now(): precisa rodar na requisição
+  await connection()
   const { erro, aviso } = await searchParams
   const items = await listMemberships()
   const msgErro = mensagem(erro)

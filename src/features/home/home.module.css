@@ -1,0 +1,161 @@
+.page {
+  padding: clamp(1.25rem, 4vw, 2.5rem) 1rem 3rem;
+}
+
+.container {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 2rem;
+  width: 100%;
+  max-width: 56rem;
+  margin: 0 auto;
+}
+
+/* Saudação e código de compartilhamento */
+.boasVindas {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 1.25rem;
+}
+
+.titulo {
+  margin: 0;
+  font-size: clamp(1.5rem, 4vw, 2rem);
+}
+
+.usuario {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0.25rem 0 0;
+  color: var(--muted);
+}
+
+.tag {
+  padding: 0.1rem 0.6rem;
+  border-radius: 999px;
+  background: var(--primary-soft);
+  color: var(--primary);
+  font-size: 0.78rem;
+  font-weight: 600;
+}
+
+.codigo {
+  display: grid;
+  padding: 0.75rem 1rem;
+  border: 1px dashed var(--border-strong);
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+
+.codigoRotulo,
+.codigoDica {
+  color: var(--muted);
+  font-size: 0.78rem;
+}
+
+.codigoValor {
+  font-family: var(--font-geist-mono), ui-monospace, monospace;
+  font-size: 1.35rem;
+  letter-spacing: 0.12em;
+}
+
+/* Grupos de atalhos */
+.grupo {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.grupoTitulo {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.8rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.grade {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(13rem, 1fr));
+  gap: 0.75rem;
+}
+
+.atalho,
+.atalhoDestaque {
+  display: grid;
+  gap: 0.2rem;
+  padding: 1rem 1.1rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  box-shadow: var(--shadow);
+  color: var(--foreground);
+  text-decoration: none;
+  transition: border-color 120ms ease, transform 120ms ease;
+}
+
+.atalho:hover,
+.atalhoDestaque:hover {
+  border-color: var(--primary);
+  color: var(--foreground);
+  transform: translateY(-1px);
+}
+
+.atalhoDestaque {
+  border-color: transparent;
+  background: var(--primary);
+  color: var(--on-primary);
+}
+
+.atalhoDestaque:hover {
+  border-color: transparent;
+  background: var(--primary-hover);
+  color: var(--on-primary);
+}
+
+.atalhoTitulo {
+  font-weight: 600;
+}
+
+.atalhoDescricao {
+  font-size: 0.85rem;
+  opacity: 0.75;
+}
+
+.sair {
+  justify-self: start;
+}
+
+.botaoSair {
+  padding: 0.5rem 1rem;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--muted);
+}
+
+.botaoSair:hover {
+  color: var(--danger);
+  border-color: var(--danger);
+}
+
+@media (max-width: 30rem) {
+  .boasVindas {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .grade {
+    grid-template-columns: 1fr 1fr;
+    gap: 0.6rem;
+  }
+
+  .atalho,
+  .atalhoDestaque {
+    padding: 0.85rem 0.9rem;
+  }
+}

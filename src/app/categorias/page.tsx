@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import { connection } from 'next/server'
 import { AddCategoryForm } from '@/features/categories/AddCategoryForm'
 import { CategoryList } from '@/features/categories/CategoryList'
 import { mensagem } from '@/features/categories/messages'
@@ -15,6 +16,8 @@ const SECOES = [
 type Props = { searchParams: Promise<{ erro?: string; aviso?: string }> }
 
 export default async function CategoriasPage({ searchParams }: Props) {
+  // As consultas chamam getUser(), que usa Date.now(): precisa rodar na requisição
+  await connection()
   const { erro, aviso } = await searchParams
   const categories = await listCategories()
   const msgErro = mensagem(erro)

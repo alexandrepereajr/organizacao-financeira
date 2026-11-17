@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import { connection } from 'next/server'
 import { listAccounts } from '@/features/accounts/queries'
 import { listContacts } from '@/features/contacts/queries'
 import { mensagem } from '@/features/pending/messages'
@@ -11,6 +12,8 @@ export const instant = false
 type Props = { searchParams: Promise<{ erro?: string; aviso?: string }> }
 
 export default async function PendentesPage({ searchParams }: Props) {
+  // As consultas chamam getUser(), que usa Date.now(): precisa rodar na requisição
+  await connection()
   const { erro, aviso } = await searchParams
   const [contas, contatos] = await Promise.all([listAccounts(), listContacts()])
   const compartilhada = contas?.find((conta) => conta.isActive)?.isShared ?? false

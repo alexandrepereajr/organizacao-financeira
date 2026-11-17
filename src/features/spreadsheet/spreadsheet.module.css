@@ -1,26 +1,45 @@
-.page { min-height: 100vh; padding: 1.5rem; }
-.container { display: grid; gap: 1.5rem; }
+.page { padding: clamp(1.25rem, 4vw, 2rem) clamp(0.75rem, 3vw, 1.5rem) 3rem; }
+.container { display: grid; grid-template-columns: minmax(0, 1fr); gap: 1.5rem; }
 .header { display: flex; align-items: baseline; justify-content: space-between; }
-.header h1 { margin: 0; font-size: 1.5rem; }
-.header a { color: #2563eb; }
+.header h1 { margin: 0; font-size: clamp(1.35rem, 3vw, 1.6rem); }
+.header a { color: var(--primary); }
 .nav { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem 1rem; }
-.nav a { color: #2563eb; }
+.nav a { color: var(--primary); }
 .periodo { opacity: 0.7; font-size: 0.9rem; }
 .modos { display: flex; gap: 0.5rem; margin-left: auto; }
-.modo, .modoAtivo { padding: 0.3rem 0.75rem; border: 1px solid rgba(128, 128, 128, 0.5); border-radius: 999px; font-size: 0.85rem; text-decoration: none; color: inherit; }
-.modoAtivo { background: #2563eb; border-color: #2563eb; color: #fff; }
+.modo, .modoAtivo { padding: 0.3rem 0.75rem; border: 1px solid var(--border-strong); border-radius: 999px; font-size: 0.85rem; text-decoration: none; color: inherit; }
+.modoAtivo { background: var(--primary); border-color: var(--primary); color: var(--on-primary); }
 .bloco { display: grid; gap: 0.5rem; }
 .titulo { margin: 0; font-size: 1.05rem; }
-.rolagem { overflow-x: auto; border: 1px solid rgba(128, 128, 128, 0.35); border-radius: 0.75rem; }
+.rolagem { overflow-x: auto; border: 1px solid var(--border); border-radius: 0.75rem; background: var(--surface); box-shadow: var(--shadow); }
 .tabela { border-collapse: collapse; width: 100%; font-size: 0.85rem; }
-.tabela th, .tabela td { padding: 0.45rem 0.6rem; border-bottom: 1px solid rgba(128, 128, 128, 0.2); white-space: nowrap; }
+.tabela th, .tabela td { padding: 0.45rem 0.6rem; border-bottom: 1px solid var(--border-soft); white-space: nowrap; }
 .mes { text-align: right; min-width: 6.5rem; font-weight: 600; }
-.rotulo { text-align: left; position: sticky; left: 0; min-width: 11rem; background: var(--background, Canvas); font-weight: 500; }
+.rotulo { text-align: left; position: sticky; left: 0; min-width: 11rem; background: var(--surface); font-weight: 500; }
 .sub { display: block; font-size: 0.75rem; opacity: 0.65; font-weight: 400; }
 .celula { text-align: right; }
 .nota { display: block; font-size: 0.7rem; opacity: 0.65; }
-.alerta { color: #d97706; opacity: 1; }
-.rodape th, .rodape td { font-weight: 700; border-top: 2px solid rgba(128, 128, 128, 0.4); }
-.negativo { color: #dc2626; }
+.alerta { color: var(--warning); opacity: 1; }
+.rodape th, .rodape td { font-weight: 700; border-top: 2px solid var(--border-strong); }
+.negativo { color: var(--danger); }
 .vazio { padding: 1rem; opacity: 0.7; }
-.erro { margin: 0; padding: 0.6rem 0.75rem; border-radius: 0.5rem; background: rgba(220, 38, 38, 0.15); color: #dc2626; }
+.erro { margin: 0; padding: 0.6rem 0.75rem; border-radius: 0.5rem; background: var(--danger-soft); color: var(--danger); }
+
+.tabela thead th { background: var(--surface-muted); font-size: 0.8rem; color: var(--muted); }
+.rodape th, .rodape td { background: var(--surface-muted); }
+.tabela tbody tr:hover th, .tabela tbody tr:hover td { background: var(--primary-soft); }
+.tabela tbody tr:hover .rotulo { background: color-mix(in srgb, var(--primary) 8%, var(--surface)); }
+.rotulo { z-index: 1; box-shadow: 1px 0 0 var(--border-soft); }
+.tabela thead .rotulo, .rodape .rotulo { background: var(--surface-muted); }
+
+@media (max-width: 47.99rem) {
+  .tabela { font-size: 0.8rem; }
+  .tabela th, .tabela td { padding: 0.4rem 0.5rem; }
+  .rotulo { min-width: 7.5rem; max-width: 9rem; white-space: normal; line-height: 1.3; }
+  .mes { min-width: 5.5rem; }
+  .modos { margin-left: 0; width: 100%; }
+}
+
+/* Os botões de modo ficam dentro de .nav: sem isto herdariam a cor dos links */
+.nav .modo { color: var(--foreground); }
+.nav .modoAtivo { color: var(--on-primary); }

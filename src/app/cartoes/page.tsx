@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import { connection } from 'next/server'
 import { listAccounts } from '@/features/accounts/queries'
 import { AddCardForm } from '@/features/cards/AddCardForm'
 import { CardList } from '@/features/cards/CardList'
@@ -12,6 +13,8 @@ export const instant = false
 type Props = { searchParams: Promise<{ erro?: string; aviso?: string }> }
 
 export default async function CartoesPage({ searchParams }: Props) {
+  // As consultas chamam getUser(), que usa Date.now(): precisa rodar na requisição
+  await connection()
   const { erro, aviso } = await searchParams
   const [cards, contas] = await Promise.all([listCards(), listAccounts()])
   const compartilhada = contas?.find((conta) => conta.isActive)?.isShared ?? false
