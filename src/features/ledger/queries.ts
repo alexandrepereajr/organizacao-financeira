@@ -1,6 +1,6 @@
 import { listCards } from '@/features/cards/queries'
 import { createClient } from '@/lib/supabase/server'
-import { buildLedger, listarMeses } from './build'
+import { buildLedger, listarMeses, type RawDestined, type RawShare } from './build'
 import type { LedgerData } from './types'
 
 const TAMANHO_PAGINA = 1000
@@ -116,7 +116,8 @@ export async function loadLedger(inicio: string, quantidade: number): Promise<Le
     months: meses,
     installments,
     recurringPurchases,
-    shares,
+    // rpc sem tipos gerados do banco devolve unknown[]
+    shares: shares as RawShare[],
     profiles,
     cards: cards.map((c) => ({
       id: c.id,
@@ -127,6 +128,6 @@ export async function loadLedger(inicio: string, quantidade: number): Promise<Le
     })),
     invoices,
     incomes: [...incomesUnicas, ...incomesRecorrentes],
-    incomesDestinadas,
+    incomesDestinadas: incomesDestinadas as RawDestined[],
   })
 }

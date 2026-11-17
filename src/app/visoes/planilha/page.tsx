@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import { connection } from 'next/server'
 import { loadLedger } from '@/features/ledger/queries'
 import type { LedgerData } from '@/features/ledger/types'
 import { hojeEmSaoPaulo } from '@/features/purchases/calc'
@@ -19,6 +20,8 @@ const MES = /^\d{4}-(0[1-9]|1[0-2])$/
 type Props = { searchParams: Promise<{ inicio?: string; modo?: string }> }
 
 export default async function PlanilhaPage({ searchParams }: Props) {
+  // Lê a data de hoje: precisa rodar na requisição, não no prerender
+  await connection()
   const { inicio: inicioParam, modo: modoParam } = await searchParams
   const hoje = hojeEmSaoPaulo().slice(0, 7)
   const inicio = inicioParam && MES.test(inicioParam) ? inicioParam : hoje

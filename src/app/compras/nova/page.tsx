@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import { connection } from 'next/server'
 import { listCards } from '@/features/cards/queries'
 import { listContacts } from '@/features/contacts/queries'
 import { hojeEmSaoPaulo } from '@/features/purchases/calc'
@@ -14,6 +15,8 @@ export const instant = false
 type Props = { searchParams: Promise<{ erro?: string; aviso?: string }> }
 
 export default async function NovaCompraPage({ searchParams }: Props) {
+  // Lê a data de hoje: precisa rodar na requisição, não no prerender
+  await connection()
   const { erro, aviso } = await searchParams
   const [cards, contacts, categories, contas] = await Promise.all([
     listCards(),

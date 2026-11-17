@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import { connection } from 'next/server'
 import { MonthStepper } from '@/components/MonthStepper'
 import { InvoiceList } from '@/features/invoices/InvoiceList'
 import { mensagem } from '@/features/invoices/messages'
@@ -12,6 +13,8 @@ export const instant = false
 type Props = { searchParams: Promise<{ mes?: string; erro?: string; aviso?: string }> }
 
 export default async function FaturasPage({ searchParams }: Props) {
+  // Lê a data de hoje: precisa rodar na requisição, não no prerender
+  await connection()
   const params = await searchParams
   const hoje = hojeEmSaoPaulo().slice(0, 7)
   const mes = mesOuPadrao(params.mes, hoje)
