@@ -62,6 +62,7 @@ organizacao-financeira/
       page.tsx               # home: dados da conta ativa e links para as telas
       login/page.tsx         # com o painel de acesso rápido em desenvolvimento
       cadastro/page.tsx      # nome, username, e-mail, senha, conta compartilhada
+      auth/confirm/route.ts  # destino do link do e-mail de confirmação
       contatos/page.tsx
       cartoes/page.tsx
       categorias/page.tsx
@@ -79,7 +80,7 @@ organizacao-financeira/
       MonthStepper.tsx       # navegação mês a mês
       ui.module.css          # estilos comuns das telas
     features/
-      auth/                  # login, cadastro, sair
+      auth/                  # login, cadastro, sair, reenvio da confirmação
       accounts/              # contas disponíveis e troca da conta ativa
       contacts/              # contatos por código/username ou só nome
       cards/                 # cartões (incluindo os de participantes)
@@ -208,7 +209,7 @@ A partir da migration 14, "dono" quer dizer a **conta ativa** (`active_account()
 | 9c | Destinos de entradas (parte de uma entrada para um contato ou conta compartilhada) | Concluído |
 | 9d | Editar e excluir compra, com lista de compras | Concluído |
 | 10 | Exportar para CSV/Excel (backup) | Fora do escopo (decidido em 17/11/2026) |
-| 11 | Confirmação de e-mail | Próxima |
+| 11 | Confirmação de e-mail | Código pronto; falta configurar o Supabase (seção 10) |
 | 12 | Acabamento visual e navegação | Pendente |
 
 ## 7. Decisões e pontos de atenção
@@ -221,7 +222,10 @@ A partir da migration 14, "dono" quer dizer a **conta ativa** (`active_account()
 - O mês de referência é sempre o dia 1; o mês da primeira parcela é informado pelo usuário, não calculado pelo fechamento do cartão.
 - Parcelas são calculadas em centavos: o resto da divisão vai em 1 centavo nas primeiras parcelas.
 - Um contato citado em uma compra não pode ser excluído.
-- Autenticação por e-mail e senha. A opção Confirm email do Supabase está **desativada por enquanto**; antes de convidar outras pessoas é preciso ligá-la e criar a rota de retorno do link de confirmação.
+- Autenticação por e-mail e senha, com confirmação de e-mail. O link do e-mail leva a `/auth/confirm`, que valida o token (`verifyOtp` com `token_hash`, funciona mesmo abrindo o e-mail em outro aparelho) e já entra na conta; se outra conta estava logada no navegador, ela é deslogada antes.
+- Quem tenta entrar sem confirmar vê uma mensagem própria e pode pedir um novo e-mail na tela de login. A resposta do reenvio é a mesma exista ou não a conta, para não revelar e-mails cadastrados. Cadastrar de novo não serve, porque o username fica reservado no primeiro cadastro.
+- Envio de e-mails pelo serviço padrão do Supabase (decidido em 17/11/2026, porque só pessoas próximas vão usar). Ele tem limite baixo de envios por hora e pode entregar só para endereços da equipe do projeto no Supabase; se alguém não receber, a saída é configurar um SMTP próprio (Resend, Brevo e similares têm plano gratuito).
+- Contas criadas antes de ligar a confirmação (e as contas de teste) já contam como confirmadas.
 - A sessão é validada com `supabase.auth.getUser()` no proxy e nas páginas protegidas.
 - As telas de login e cadastro mostram mensagens fixas por código, nunca texto vindo da URL.
 - Quem é citado numa compra de outra conta só lê; editar e excluir é da conta dona. Ele também não vê o cartão nem os outros participantes (seção 5).
@@ -231,7 +235,7 @@ A partir da migration 14, "dono" quer dizer a **conta ativa** (`active_account()
 
 ## 8. Próximos passos
 
-1. **Parte 11, confirmação de e-mail:** ligar Confirm email no Supabase e criar a rota de retorno do link. Necessário antes de convidar outras pessoas.
+1. **Parte 11, confirmação de e-mail (pendente, configuração manual):** código pronto e testado localmente; falta o passo a passo do Supabase na seção 10 ("Supabase, confirmação de e-mail"), incluindo o teste com um cadastro real.
 2. **Parte 12, acabamento visual:** navegação entre telas, estilos globais, título da página (hoje "Create Next App") e planilha legível no celular.
 3. **Pendências técnicas:** mostrar `created_by` onde fizer sentido; levar `create_purchase` a usar `check_purchase_input` (hoje a validação está repetida nas duas).
 
@@ -243,6 +247,7 @@ A partir da migration 14, "dono" quer dizer a **conta ativa** (`active_account()
 - **17/11/2026:** corrigido o `npm run build`, que falhava na checagem de tipos em `src/features/ledger/queries.ts`; adicionado `await connection()` nas páginas que leem a data (`/`, `/compras/nova`, `/entradas`, `/faturas`, `/visoes/planilha`).
 - **17/11/2026:** documento atualizado com o que foi feito entre 09 e 11/11 (migrations 8 a 19, partes 5 a 9, categorias, contas compartilhadas, destinos de entradas) e com os próximos passos.
 - **17/11/2026:** regra de privacidade das compras (quem é citado vê só a própria parte; migration 20). Parte 9d: lista de compras do mês (`/compras`), edição (`/compras/[id]/editar`) e exclusão, com as funções `update_purchase` e `delete_purchase` (migration 21). Migrations 20 e 21 aplicadas e testadas: citado vê só a própria linha; editar parcelada e recorrente (divisão da série), encerrar, excluir, recusa de soma errada e bloqueio de edição/exclusão por quem foi citado. Fluxo de editar e excluir também testado pela tela.
+- **17/11/2026:** exportação para CSV saiu do escopo. Parte 11: rota `/auth/confirm`, mensagem para e-mail não confirmado e reenvio da confirmação no login. Testado localmente: link inválido, reenvio e login normal. Falta configurar o Supabase (seção 10) e testar com um cadastro real.
 
 ## 10. Ambiente, variáveis e deploy
 
@@ -254,13 +259,20 @@ A partir da migration 14, "dono" quer dizer a **conta ativa** (`active_account()
 - **Onde ficam:** localmente no arquivo `.env.local`, na raiz do projeto (ao lado do package.json), sem aspas e sem espaços em volta do `=`; nunca vai para o Git. Na Vercel, em Settings > Environment Variables, com os mesmos nomes, como variáveis comuns (não sensíveis), nos ambientes Production, Preview e Development.
 - **Depois de mudar variáveis:** reiniciar o `npm run dev` (o Next.js só lê o arquivo ao iniciar) e, na Vercel, fazer Redeploy (as variáveis NEXT_PUBLIC_ são gravadas durante o build).
 - **Vercel:** o Framework Preset precisa ser **Next.js**, sem sobrescrever o Output Directory.
-- **Supabase:** em Authentication, a opção Confirm email está desativada por enquanto. As migrations 1 a 21 foram executadas no SQL Editor, na ordem; não executá-las de novo (dá erro de já existe). Mudanças futuras no banco entram como novas migrations numeradas em `supabase/migrations/`, uma por arquivo, continuando a partir da 22.
+- **Supabase, confirmação de e-mail — PENDENTE, a fazer pelo Alexandre** (Authentication no painel do Supabase):
+  0. **Antes de tudo:** garantir que a rota `/auth/confirm` já está em produção (push na `main` e deploy da Vercel concluído). Se a confirmação for ligada antes, quem se cadastrar recebe um link que dá 404.
+  1. *URL Configuration*: **Site URL** = endereço de produção na Vercel (sem barra no final). Em **Redirect URLs**, incluir também `http://localhost:3000/**`.
+  2. *Emails > Confirm signup*: no template, trocar o link (`{{ .ConfirmationURL }}`) por `{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&type=email`. Pode manter o resto do texto do e-mail.
+  3. *Sign In / Providers > Email*: ligar **Confirm email** e salvar.
+  4. **Testar:** cadastrar uma conta nova com um e-mail próprio, abrir o link recebido e conferir que cai na home já logado. Tentar entrar antes de confirmar deve mostrar "Seu e-mail ainda não foi confirmado" e o formulário de reenvio.
+  Observações: como o link usa a Site URL, um cadastro feito no `npm run dev` recebe link para a produção. O serviço de e-mail padrão envia poucos e-mails por hora e pode entregar só para endereços da equipe do projeto no Supabase; se alguém não receber, esse é o motivo provável (solução: SMTP próprio, em *Emails > SMTP Settings*).
+- **Supabase:** as migrations 1 a 21 foram executadas no SQL Editor, na ordem; não executá-las de novo (dá erro de já existe). Mudanças futuras no banco entram como novas migrations numeradas em `supabase/migrations/`, uma por arquivo, continuando a partir da 22.
 - **Contas de teste:** `supabase/migrations/contas-teste.sql` cria as contas Ana, Bruno, Carla (normais) e Casa (compartilhada), com dados de exemplo; pode ser executado mais de uma vez. No `npm run dev`, a tela de login mostra o painel "Acesso rápido" para entrar nelas (código em `src/features/dev/`); em produção o painel não funciona.
 
 ## 11. Convenções de código
 
 - Next.js 16 com App Router, TypeScript e imports pelo alias `@/` (que aponta para `src/`). Estilos com CSS Modules; não assumir Tailwind.
-- **Proxy:** `src/proxy.ts` exporta a função `proxy` e chama `updateSession` (em `src/lib/supabase/proxy.ts`). Ela renova a sessão com `supabase.auth.getUser()`, deixa `/login` e `/cadastro` públicas, manda quem não está logado para `/login` e quem está logado em página pública para `/`.
+- **Proxy:** `src/proxy.ts` exporta a função `proxy` e chama `updateSession` (em `src/lib/supabase/proxy.ts`). Ela renova a sessão com `supabase.auth.getUser()`, deixa `/login` e `/cadastro` públicas, manda quem não está logado para `/login` e quem está logado em página pública para `/`. `/auth/confirm` fica aberta para todos (lista `OPEN_PATHS`), logados ou não.
 - **Cliente Supabase no servidor:** `createClient()` de `@/lib/supabase/server` (assíncrono, usa os cookies); criar um por requisição. O cliente de navegador ainda não existe; quando for necessário, usar `createBrowserClient` do @supabase/ssr.
 - **Gravações:** Server Actions em `src/features/<funcionalidade>/actions.ts`, com `'use server'`. Em caso de erro, redirecionam com um código (`?erro=codigo`) e os textos ficam em `messages.ts`.
 - **Páginas que leem searchParams ou cookies** exportam `export const instant = false` antes do componente. Sem isso o Next.js 16.4 mostra o erro blocking-prerender-runtime e o build pode falhar. Se aparecer erro de `Date.now()` em uma página, chamar `await connection()` (de `next/server`) no início dela.

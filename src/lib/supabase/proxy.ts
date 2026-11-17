@@ -3,6 +3,8 @@ import { NextResponse, type NextRequest } from 'next/server'
 import { supabaseKey, supabaseUrl } from './env'
 
 const PUBLIC_PATHS = ['/login', '/cadastro']
+// Abertas para todos, logados ou não (o link de confirmação pode abrir com outra conta logada)
+const OPEN_PATHS = ['/auth/confirm']
 
 function isPublic(pathname: string) {
   return PUBLIC_PATHS.some((p) => pathname === p || pathname.startsWith(`${p}/`))
@@ -42,6 +44,8 @@ export async function updateSession(request: NextRequest) {
   } = await supabase.auth.getUser()
 
   const { pathname } = request.nextUrl
+
+  if (OPEN_PATHS.includes(pathname)) return supabaseResponse
 
   if (!user && !isPublic(pathname)) {
     return redirectTo(request, supabaseResponse, '/login')

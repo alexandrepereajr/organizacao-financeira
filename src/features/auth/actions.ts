@@ -16,6 +16,7 @@ export async function signIn(formData: FormData) {
     password: String(formData.get('password') ?? ''),
   })
 
+  if (error?.code === 'email_not_confirmed') redirect('/login?erro=email_nao_confirmado')
   if (error) redirect('/login?erro=credenciais')
   redirect('/')
 }
@@ -69,4 +70,17 @@ export async function signOut() {
   await supabase.auth.signOut()
   ;(await cookies()).delete(COOKIE_CONTA_ATIVA)
   redirect('/login')
+}
+
+export async function resendConfirmation(formData: FormData) {
+  const email = texto(formData, 'email')
+  if (!email) redirect('/login?erro=email_nao_confirmado')
+
+  const supabase = await createClient()
+  const { error } = await supabase.auth.resend({ type: 'signup', email })
+
+  if (error?.code === 'over_email_send_rate_limit') redirect('/login?erro=limite_emails')
+  if (error) console.error('Falha ao reenviar confirmação:', error.message)
+  // Mesma resposta exista ou não a conta, para não revelar quais e-mails estão cadastrados
+  redirect('/login?aviso=confirmacao_reenviada')
 }

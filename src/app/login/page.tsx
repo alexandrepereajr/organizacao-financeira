@@ -4,6 +4,10 @@ import { AuthShell } from '@/features/auth/AuthShell'
 import { mensagem } from '@/features/auth/messages'
 import styles from '@/features/auth/auth.module.css'
 import { DevPanel } from '@/features/dev/DevPanel'
+import { ResendForm } from '@/features/auth/ResendForm'
+
+// Erros em que faz sentido oferecer um novo e-mail de confirmação
+const OFERECE_REENVIO = ['email_nao_confirmado', 'link_invalido', 'limite_emails']
 
 export const instant = false
 type Props = { searchParams: Promise<{ erro?: string; aviso?: string }> }
@@ -32,6 +36,7 @@ export default async function LoginPage({ searchParams }: Props) {
       <p className={styles.footer}>
         Ainda não tem conta? <Link href="/cadastro">Criar conta</Link>
       </p>
+      {erro && OFERECE_REENVIO.includes(erro) && <ResendForm />}
       <DevPanel />
     </AuthShell>
   )
