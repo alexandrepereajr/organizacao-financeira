@@ -1,0 +1,7 @@
+.bar { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem 0.75rem; padding: 0.5rem 1.5rem; border-bottom: 1px solid rgba(128, 128, 128, 0.35); font-size: 0.85rem; }
+.compartilhada { background: rgba(37, 99, 235, 0.12); }
+.rotulo { opacity: 0.7; }
+.tag { padding: 0.1rem 0.5rem; border: 1px solid rgba(128, 128, 128, 0.5); border-radius: 999px; font-size: 0.75rem; }
+.form { display: flex; gap: 0.5rem; margin-left: auto; }
+.select { padding: 0.3rem 0.5rem; border: 1px solid rgba(128, 128, 128, 0.5); border-radius: 0.5rem; font: inherit; background: transparent; color: inherit; }
+.botao { padding: 0.3rem 0.8rem; border: 0; border-radius: 0.5rem; font: inherit; font-weight: 600; cursor: pointer; background: #2563eb; color: #fff; }

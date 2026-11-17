@@ -2,6 +2,8 @@
 
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
+import { cookies } from 'next/headers'
+import { COOKIE_CONTA_ATIVA } from '@/lib/supabase/server'
 
 function texto(formData: FormData, campo: string) {
   return String(formData.get(campo) ?? '').trim()
@@ -20,17 +22,36 @@ export async function signIn(formData: FormData) {
 
 export async function signUp(formData: FormData) {
   const nome = texto(formData, 'nome')
+  const username = texto(formData, 'username').toLowerCase()
   const email = texto(formData, 'email')
   const password = String(formData.get('password') ?? '')
+  const compartilhada = texto(formData, 'compartilhada') === '1'
 
   if (nome.length < 2) redirect('/cadastro?erro=nome_invalido')
+  if (!/^[a-z0-9_]{3,20}$/.test(username)) redirect('/cadastro?erro=usuario_invalido')
   if (password.length < 8) redirect('/cadastro?erro=senha_curta')
 
   const supabase = await createClient()
+
+  const { data: disponivel, error: erroUsuario } = await supabase.rpc('username_available', {
+    p_username: username,
+  })
+  if (erroUsuario) {
+    console.error('Falha ao verificar username:', erroUsuario.message)
+    redirect('/cadastro?erro=cadastro_falhou')
+  }
+  if (disponivel === false) redirect('/cadastro?erro=usuario_em_uso')
+
   const { data, error } = await supabase.auth.signUp({
     email,
     password,
-    options: { data: { display_name: nome } },
+    options: {
+      data: {
+        display_name: nome,
+        username,
+        account_type: compartilhada ? 'shared' : 'normal',
+      },
+    },
   })
 
   if (error) {
@@ -46,5 +67,6 @@ export async function signUp(formData: FormData) {
 export async function signOut() {
   const supabase = await createClient()
   await supabase.auth.signOut()
+  ;(await cookies()).delete(COOKIE_CONTA_ATIVA)
   redirect('/login')
 }

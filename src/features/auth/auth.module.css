@@ -13,3 +13,4 @@
 .footer { margin: 1.25rem 0 0; font-size: 0.9rem; }
 .footer a { color: #2563eb; }
 .code { font-family: monospace; font-size: 1.25rem; letter-spacing: 0.1em; }
+.check { display: flex; align-items: center; gap: 0.5rem; font-size: 0.9rem; }

@@ -3,6 +3,7 @@ import { signIn } from '@/features/auth/actions'
 import { AuthShell } from '@/features/auth/AuthShell'
 import { mensagem } from '@/features/auth/messages'
 import styles from '@/features/auth/auth.module.css'
+import { DevPanel } from '@/features/dev/DevPanel'
 
 export const instant = false
 type Props = { searchParams: Promise<{ erro?: string; aviso?: string }> }
@@ -31,6 +32,7 @@ export default async function LoginPage({ searchParams }: Props) {
       <p className={styles.footer}>
         Ainda não tem conta? <Link href="/cadastro">Criar conta</Link>
       </p>
+      <DevPanel />
     </AuthShell>
   )
 }

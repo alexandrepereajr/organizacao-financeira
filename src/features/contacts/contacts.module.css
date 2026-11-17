@@ -1,0 +1,22 @@
+.page { min-height: 100vh; padding: 2rem 1.5rem; }
+.container { width: 100%; max-width: 36rem; margin: 0 auto; display: grid; gap: 1.5rem; }
+.header { display: flex; align-items: baseline; justify-content: space-between; }
+.header h1 { margin: 0; font-size: 1.5rem; }
+.header a { color: #2563eb; }
+.section { padding: 1.25rem; border: 1px solid rgba(128, 128, 128, 0.35); border-radius: 0.75rem; }
+.section h2 { margin: 0 0 0.75rem; font-size: 1.05rem; }
+.hint { margin: 0 0 0.75rem; opacity: 0.7; font-size: 0.9rem; }
+.code { margin: 0; font-family: monospace; font-size: 1.5rem; letter-spacing: 0.1em; }
+.form { display: flex; gap: 0.5rem; }
+.input { flex: 1; padding: 0.6rem 0.75rem; border: 1px solid rgba(128, 128, 128, 0.5); border-radius: 0.5rem; font: inherit; background: transparent; color: inherit; }
+.button { padding: 0.6rem 1rem; border: 0; border-radius: 0.5rem; font: inherit; font-weight: 600; cursor: pointer; background: #2563eb; color: #fff; }
+.button:hover { background: #1d4ed8; }
+.erro, .aviso { margin: 0; padding: 0.6rem 0.75rem; border-radius: 0.5rem; font-size: 0.9rem; }
+.erro { background: rgba(220, 38, 38, 0.15); color: #dc2626; }
+.aviso { background: rgba(22, 163, 74, 0.15); color: #16a34a; }
+.lista { list-style: none; margin: 0; padding: 0; display: grid; gap: 0.5rem; }
+.item { display: flex; align-items: center; gap: 0.75rem; padding: 0.5rem 0; border-bottom: 1px solid rgba(128, 128, 128, 0.2); }
+.nome { flex: 1; }
+.tag { font-size: 0.75rem; padding: 0.15rem 0.5rem; border-radius: 999px; border: 1px solid rgba(128, 128, 128, 0.5); opacity: 0.8; }
+.remover { padding: 0.3rem 0.7rem; border: 1px solid rgba(220, 38, 38, 0.5); border-radius: 0.5rem; background: transparent; color: #dc2626; font: inherit; font-size: 0.85rem; cursor: pointer; }
+.vazio { margin: 0; opacity: 0.7; }
