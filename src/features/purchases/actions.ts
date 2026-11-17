@@ -45,7 +45,10 @@ function lerShares(raw: string): ShareInput[] | null {
   }
 }
 
-export async function createPurchase(formData: FormData) {
+type Falha = (codigo: string) => never
+
+// Lê e valida o formulário de compra (nova ou edição) e monta os parâmetros do banco
+function lerCompra(formData: FormData, falhar: Falha) {
   const nome = texto(formData, 'nome')
   if (nome.length < 2 || nome.length > 100) falhar('nome_invalido')
 
@@ -103,8 +106,7 @@ export async function createPurchase(formData: FormData) {
     .filter((s) => s.amount > 0)
   if (divisao.length === 0) falhar('divisao_invalida')
 
-  const supabase = await createClient()
-  const { error } = await supabase.rpc('create_purchase', {
+  const params = {
     p_description: nome,
     p_total_amount: Number((totalCents / 100).toFixed(2)),
     p_purchase_date: data,
@@ -113,10 +115,17 @@ export async function createPurchase(formData: FormData) {
     p_card_id: cartao === '' ? null : cartao,
     p_shares: divisao,
     p_notes: descricao === '' ? null : descricao,
-    p_is_recurring: recorrente,
     p_category_id: categoria === '' ? null : categoria,
     p_shared_account: contaCompartilhadaId === '' ? null : contaCompartilhadaId,
-  })
+  }
+  return { recorrente, params }
+}
+
+export async function createPurchase(formData: FormData) {
+  const { recorrente, params } = lerCompra(formData, falhar)
+
+  const supabase = await createClient()
+  const { error } = await supabase.rpc('create_purchase', { ...params, p_is_recurring: recorrente })
 
   if (error) {
     console.error('Falha ao criar compra:', error.message)
@@ -124,4 +133,69 @@ export async function createPurchase(formData: FormData) {
     falhar('falha')
   }
   redirect('/compras/nova?aviso=compra_criada')
+}
+
+// Mês em que o usuário estava (lista de compras); padrão vazio = sem mês
+function mesDoForm(formData: FormData): string {
+  const mes = texto(formData, 'mes_lista')
+  return MES.test(mes) ? mes : ''
+}
+
+function voltarParaLista(mes: string, tipo: 'erro' | 'aviso', codigo: string): never {
+  const params = new URLSearchParams({ [tipo]: codigo })
+  if (mes) params.set('mes', mes)
+  redirect(`/compras?${params.toString()}`)
+}
+
+function codigoDoErro(mensagemDoBanco: string): string {
+  if (mensagemDoBanco.includes('Compra não encontrada')) return 'compra_nao_encontrada'
+  if (mensagemDoBanco.includes('recorrência')) return 'recorrencia_invalida'
+  if (mensagemDoBanco.includes('devem pertencer a participantes')) return 'divisao_invalida'
+  return 'falha'
+}
+
+export async function updatePurchase(formData: FormData) {
+  const mesLista = mesDoForm(formData)
+  const id = texto(formData, 'id')
+  if (!UUID.test(id)) voltarParaLista(mesLista, 'erro', 'compra_nao_encontrada')
+
+  const voltarAoFormulario: Falha = (codigo) => {
+    const params = new URLSearchParams({ erro: codigo })
+    if (mesLista) params.set('mes', mesLista)
+    redirect(`/compras/${id}/editar?${params.toString()}`)
+  }
+
+  // A recorrência não muda na edição; quem decide é o que está gravado no banco
+  const { params } = lerCompra(formData, voltarAoFormulario)
+
+  const supabase = await createClient()
+  const { error } = await supabase.rpc('update_purchase', {
+    ...params,
+    p_purchase_id: id,
+    p_month: `${mesLista || params.p_first_installment_month.slice(0, 7)}-01`,
+  })
+
+  if (error) {
+    console.error('Falha ao alterar compra:', error.message)
+    voltarAoFormulario(codigoDoErro(error.message))
+  }
+  voltarParaLista(mesLista, 'aviso', 'compra_atualizada')
+}
+
+export async function deletePurchase(formData: FormData) {
+  const mesLista = mesDoForm(formData)
+  const id = texto(formData, 'id')
+  if (!UUID.test(id) || !mesLista) voltarParaLista(mesLista, 'erro', 'falha')
+
+  const supabase = await createClient()
+  const { data, error } = await supabase.rpc('delete_purchase', {
+    p_purchase_id: id,
+    p_month: `${mesLista}-01`,
+  })
+
+  if (error) {
+    console.error('Falha ao excluir compra:', error.message)
+    voltarParaLista(mesLista, 'erro', codigoDoErro(error.message))
+  }
+  voltarParaLista(mesLista, 'aviso', data === 'encerrada' ? 'compra_encerrada' : 'compra_removida')
 }

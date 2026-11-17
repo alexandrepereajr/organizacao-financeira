@@ -1,4 +1,5 @@
 import { redirect } from 'next/navigation'
+import { connection } from 'next/server'
 import { signOut } from '@/features/auth/actions'
 import { createClient } from '@/lib/supabase/server'
 import styles from '@/features/auth/auth.module.css'
@@ -6,6 +7,8 @@ import Link from 'next/link'
 
 export const instant = false
 export default async function HomePage() {
+  // getUser() usa Date.now(): precisa rodar na requisição, não no prerender
+  await connection()
   const supabase = await createClient()
   const {
     data: { user },
@@ -37,6 +40,7 @@ export default async function HomePage() {
         ) : (
           <p><Link href="/contas">Contas compartilhadas</Link></p>
         )}
+        <p><Link href="/compras">Compras</Link></p>
         <p><Link href="/compras/nova">Nova compra</Link></p>
         <p><Link href="/entradas">Entradas</Link></p>
         <p><Link href="/faturas">Faturas</Link></p>

@@ -10,6 +10,11 @@ export const mensagens = {
   falha: 'Não foi possível salvar a compra. Tente novamente.',
   compra_criada: 'Compra salva.',
   categoria_invalida: 'Categoria inválida.',
+  compra_atualizada: 'Compra atualizada.',
+  compra_removida: 'Compra excluída.',
+  compra_encerrada: 'Recorrência encerrada a partir deste mês.',
+  compra_nao_encontrada: 'Compra não encontrada, ou ela não pertence a esta conta.',
+  recorrencia_invalida: 'Confira os meses: a recorrência já terminou ou o início fica depois do fim.',
 } as const
 
 export function mensagem(chave?: string): string | undefined {

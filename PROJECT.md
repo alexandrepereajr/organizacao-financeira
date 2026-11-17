@@ -23,7 +23,7 @@ Sistema de organização financeira **pessoal e simples**, para substituir a pla
 | Camada | Tecnologia | Status |
 | --- | --- | --- |
 | Hospedagem | Vercel (plano Hobby, gratuito); deploy automático a cada push na branch main | Em uso (publicado) |
-| Banco de dados | Supabase (Postgres, plano gratuito); migrations 1 a 7 aplicadas | Em uso |
+| Banco de dados | Supabase (Postgres, plano gratuito); migrations 1 a 21 aplicadas | Em uso |
 | Autenticação | Supabase Auth (e-mail e senha) | Em uso |
 | Front-end | Next.js 16 (App Router) + TypeScript, estilos com CSS Modules | Em uso |
 | Versionamento | GitHub, repositório alexandrepereajr/organizacao-financeira | Em uso |
@@ -52,33 +52,69 @@ organizacao-financeira/
   .env.local                 # fora do Git; variáveis do Supabase (seção 10)
   package.json
   tsconfig.json              # alias @/* aponta para ./src/*
-  supabase/migrations/       # SQL das migrations 1 a 7 (histórico; já aplicadas)
+  supabase/migrations/       # SQL das migrations 1 a 21 (histórico; já aplicadas)
+                             # contas-teste.sql: cria as contas de teste (seção 10)
   src/
     proxy.ts                 # entrada do proxy (Next.js 16); chama updateSession
     app/
-      layout.tsx
+      layout.tsx             # inclui a AccountBar (troca de conta)
       globals.css
-      page.tsx               # home protegida (nome e código do usuário, botão Sair)
-      login/page.tsx
-      cadastro/page.tsx
+      page.tsx               # home: dados da conta ativa e links para as telas
+      login/page.tsx         # com o painel de acesso rápido em desenvolvimento
+      cadastro/page.tsx      # nome, username, e-mail, senha, conta compartilhada
+      contatos/page.tsx
+      cartoes/page.tsx
+      categorias/page.tsx
+      compras/page.tsx       # compras da conta no mês, com editar e excluir
+      compras/nova/page.tsx
+      compras/[id]/editar/page.tsx
+      entradas/page.tsx
+      faturas/page.tsx
+      contas/page.tsx        # conta normal: convites e pedidos para contas compartilhadas
+      participantes/page.tsx # conta compartilhada: seus participantes
+      pendentes/page.tsx     # conta compartilhada: compras incompletas
+      visoes/planilha/page.tsx
+    components/
+      AccountBar.tsx         # seletor da conta ativa (só aparece com 2+ contas)
+      MonthStepper.tsx       # navegação mês a mês
+      ui.module.css          # estilos comuns das telas
     features/
-      auth/
-        actions.ts           # Server Actions: signIn, signUp, signOut
-        messages.ts          # textos fixos por código (?erro=codigo)
-        AuthShell.tsx        # cartão visual das telas de login e cadastro
-        auth.module.css
+      auth/                  # login, cadastro, sair
+      accounts/              # contas disponíveis e troca da conta ativa
+      contacts/              # contatos por código/username ou só nome
+      cards/                 # cartões (incluindo os de participantes)
+      categories/            # categorias de compras e de entradas
+      purchases/             # formulário de compra (nova e edição), lista do mês, parcelas, divisão (calc.ts)
+      pending/               # completar compras vinculadas a conta compartilhada
+      incomes/               # entradas, recorrência e destinos
+      invoices/              # valor real da fatura por cartão e mês
+      memberships/           # convites, pedidos e participantes
+      ledger/                # lê do banco e monta os dados por mês
+      spreadsheet/           # visão em planilha (blocos e tabela)
+      dev/                   # acesso rápido às contas de teste (só no npm run dev)
     lib/
+      month.ts               # validação do formato de mês AAAA-MM
       supabase/
         env.ts               # lê as duas variáveis NEXT_PUBLIC_*
-        server.ts            # createClient() para servidor
+        server.ts            # createClient() para servidor; envia a conta ativa
         proxy.ts             # updateSession: renova sessão e protege rotas
 ```
 
-Novas funcionalidades entram em `src/features/<nome>/` e novas rotas em `src/app/<rota>/`.
+Novas funcionalidades entram em `src/features/<nome>/` e novas rotas em `src/app/<rota>/`. Cada pasta de funcionalidade segue o padrão `actions.ts` (gravações), `queries.ts` (leituras), `messages.ts` (textos) e componentes.
 
 ## 5. Modelo de dados
 
-O banco está fechado e aplicado no Supabase (migrations 1 a 7, executadas sem erros). As parcelas são linhas e não colunas: a visão de planilha, com meses em colunas, é uma consulta agrupada pelo mês de referência.
+O banco está aplicado no Supabase (migrations 1 a 21). As parcelas são linhas e não colunas: a visão de planilha, com meses em colunas, é uma consulta agrupada pelo mês de referência. Compras e entradas recorrentes não geram linhas por mês: o código repete o valor em cada mês até `recurrence_end_month`.
+
+### Contas normais, contas compartilhadas e conta ativa
+
+- Cada perfil tem `account_type`: **normal** (uma pessoa) ou **shared** (uma conta compartilhada, como "Casa"). A conta compartilhada é criada no cadastro, marcando a opção correspondente.
+- Usuários normais viram **participantes** de uma conta compartilhada por convite ou pedido aceito (tabela `account_members`).
+- O participante pode **agir em nome** da conta compartilhada: a conta escolhida na AccountBar fica no cookie `conta_ativa`, o `createClient()` envia o cabeçalho `x-active-account` e a função `active_account()` confere se o vínculo está ativo. Sem cookie, a conta ativa é o próprio usuário.
+- Novos registros pertencem à conta ativa (`owner_id` default `active_account()`), e as regras de RLS usam a conta ativa.
+- A conta compartilhada não entra na divisão das compras: elas pertencem aos participantes. Uma compra vinculada à conta compartilhada sem divisão fica **pendente** (`shared_pending`) até ser completada em `/pendentes`.
+
+### Tabelas
 
 | Tabela | Função | Migration |
 | --- | --- | --- |
@@ -90,33 +126,68 @@ O banco está fechado e aplicado no Supabase (migrations 1 a 7, executadas sem e
 | installments | Uma linha por parcela, com valor e mês de referência | 20261108000004_purchases |
 | invoices | Valor real da fatura fechada por cartão e mês | 20261108000006_invoices |
 | incomes | Entradas por mês | 20261108000007_incomes |
+| categories | Categorias do dono, separadas em compras e entradas | 20261110000011_categories |
+| account_members | Vínculo entre conta compartilhada e participante (convidado, pedido ou ativo) | 20261110000013_shared_account_members |
+| income_shares | Destinos de parte de uma entrada (para um contato ou uma conta compartilhada) | 20261111000019_income_shares |
 
-Funções no banco: `add_contact_by_share_code` (adiciona um contato pelo código único), `create_purchase` (cria a compra, as divisões e as parcelas numa única transação, migration 5) e `can_view_purchase` (regra de leitura das compras).
+O que cada migration de 8 a 19 acrescentou:
+
+| Migration | Mudança |
+| --- | --- |
+| 08 my_purchase_shares | Função com a parte do usuário em cada compra de um período |
+| 09 recurrence | Compras e entradas recorrentes |
+| 10 username_account_type | Username único e tipo de conta (normal ou shared) |
+| 11 categories | Categorias, com categorias padrão criadas no cadastro |
+| 12 add_contact_by_identifier | Adicionar contato por username ou código (substitui `add_contact_by_share_code`) |
+| 13 shared_account_members | Participantes de contas compartilhadas: convites, pedidos, aceite, remoção |
+| 14 account_switcher | Conta ativa e regras de segurança em nome dela; `created_by` em compras e entradas |
+| 15 shared_purchase_shares | A conta compartilhada não entra na divisão |
+| 16 shared_cards | Cartões dos participantes visíveis para a conta compartilhada (com opção de ocultar) |
+| 17 shared_purchases | Compras vinculadas a uma conta compartilhada; compra pendente |
+| 18 complete_shared_purchase | Completar a divisão de uma compra pendente |
+| 19 income_shares | Destinos de entradas; criar e alterar entradas por função |
+| 20 cited_sees_own_share | Quem foi citado numa compra vê só a própria linha da divisão |
+| 21 update_delete_purchase | Editar e excluir compras (`update_purchase`, `delete_purchase`) |
+
+Funções principais no banco: `create_purchase` (cria a compra, as divisões e as parcelas numa única transação), `complete_shared_purchase`, `can_view_purchase` (regra de leitura das compras), `my_purchase_shares`, `add_contact_by_identifier`, `create_income`, `update_income`, `incomes_destined_to_me`, `active_account`, `my_accounts`, `current_account`, `visible_cards` e as de participantes (`invite_member`, `request_join`, `respond_invitation`, `respond_request`, `remove_member`, `membership_overview`).
 
 Segurança: ativar **Row Level Security (RLS)** em todas as tabelas e exigir login.
 
 ### Colunas principais
 
-- **profiles:** id (igual ao id do usuário no Supabase Auth), display_name, share_code (único, 8 caracteres, gerado automaticamente), created_at.
+- **profiles:** id (igual ao id do usuário no Supabase Auth), display_name, share_code (único, 8 caracteres, gerado automaticamente), username (único, 3 a 20 caracteres `a-z0-9_`), account_type (`normal` ou `shared`), created_at.
 - **contacts:** id, owner_id, name, linked_user_id (vazio = pessoa sem conta), created_at. Não pode apontar para o próprio dono; um mesmo usuário vinculado só aparece uma vez por dono.
-- **cards:** id, owner_id, name, closing_day (1 a 31), due_day (1 a 31), is_active, created_at.
-- **purchases:** id, owner_id, card_id (pode ser vazio), description, total_amount (numeric 12,2, maior que zero), purchase_date, installments_count (1 a 120), first_installment_month (sempre dia 1), notes, created_at.
-- **purchase_shares:** id, purchase_id, contact_id (vazio = o próprio dono), amount (maior que zero). Uma linha por participante; no máximo uma por contato e uma para o dono em cada compra.
+- **cards:** id, owner_id, name, closing_day (1 a 31), due_day (1 a 31), is_active, hide_from_shared (oculta o cartão das contas compartilhadas), created_at.
+- **purchases:** id, owner_id, card_id (pode ser vazio), category_id, description, total_amount (numeric 12,2, maior que zero), purchase_date, installments_count (1 a 120), first_installment_month (sempre dia 1), is_recurring, recurrence_end_month, shared_account_id (conta compartilhada vinculada), shared_pending, created_by, notes, created_at.
+- **purchase_shares:** id, purchase_id, contact_id (vazio = o próprio dono), shared_contact_id (participante da conta compartilhada), amount (maior que zero). Uma linha por participante.
+- **categories:** id, owner_id, kind (`purchase` ou `income`), name (2 a 40 caracteres, único por dono e tipo), is_active, created_at.
+- **account_members:** shared_account_id, member_user_id, status (`invited`, `requested` ou `active`), created_at, updated_at.
+- **income_shares:** id, income_id, contact_id ou shared_account_id (exatamente um), kind (`percent` ou `amount`), value.
 - **installments:** id, purchase_id, number, amount, reference_month (sempre dia 1). Único por compra e número.
 - **invoices:** id, card_id, reference_month (dia 1), amount, created_at. Único por cartão e mês.
-- **incomes:** id, owner_id, description, amount (maior que zero), reference_month (dia 1), created_at.
+- **incomes:** id, owner_id, category_id, description, amount (maior que zero), reference_month (dia 1), is_recurring, recurrence_end_month, created_by, created_at.
 
 ### Regras de segurança (RLS)
 
+A partir da migration 14, "dono" quer dizer a **conta ativa** (`active_account()`), não necessariamente o usuário logado.
+
 - **profiles:** cada um lê o próprio perfil, os perfis de quem adicionou como contato e o perfil do dono das compras em que foi citado. Só o display_name pode ser alterado.
-- **contacts, cards, incomes:** acesso total apenas do dono.
+- **contacts, categories, incomes:** acesso total apenas do dono.
+- **cards:** o dono vê e altera; a conta compartilhada só lê os cartões não ocultos dos participantes ativos.
 - **invoices:** acesso total apenas do dono do cartão.
-- **purchases, purchase_shares, installments:** leitura para o dono e para quem foi citado (via a função can_view_purchase); exclusão de compra só pelo dono; não há inserts diretos.
+- **purchases, installments:** leitura para o dono, para quem foi citado, para a conta compartilhada vinculada e para o dono do cartão usado (via a função can_view_purchase); exclusão de compra só pelo dono; não há inserts nem updates diretos.
+- **purchase_shares:** o dono da compra, a conta compartilhada vinculada e o dono do cartão veem todas as linhas; **quem foi citado vê só a própria linha** (função can_view_purchase_share, migration 20).
+- **Regra de privacidade:** quem foi citado numa compra de outra conta não vê o nome do cartão nem quem são os outros participantes (nem quantos são ou quanto pagam). Vê a compra, o total, as parcelas, a própria parte e o nome de quem a criou.
+- **account_members, income_shares:** só leitura; as alterações passam pelas funções.
 
 ### Funções
 
-- `create_purchase(p_description text, p_total_amount numeric, p_purchase_date date, p_installments_count integer, p_first_installment_month date, p_card_id uuid, p_shares jsonb, p_notes text default null)` devolve o id da compra. O parâmetro p_shares é uma lista de objetos com contact_id (uuid ou null para o próprio usuário) e amount; a soma precisa ser igual ao total.
-- `add_contact_by_share_code(p_code text)` devolve a linha do contato criado (ou já existente).
+- `create_purchase(p_description text, p_total_amount numeric, p_purchase_date date, p_installments_count integer, p_first_installment_month date, p_card_id uuid, p_shares jsonb, p_notes text default null, p_is_recurring boolean default false, p_category_id uuid default null, p_shared_account uuid default null)` devolve o id da compra (versão da migration 17). O parâmetro p_shares é uma lista de objetos com contact_id (uuid ou null para o próprio usuário) e amount; a soma precisa ser igual ao total.
+- `complete_shared_purchase(p_purchase_id uuid, p_shares jsonb)`: a conta compartilhada informa a divisão de uma compra pendente; p_shares usa shared_contact_id e amount.
+- `create_income(p_description, p_amount, p_start_month, p_repeat, p_recurring, p_category, p_shares)` e `update_income(...)`: criam e alteram entradas com seus destinos. Alterar uma recorrente que começou antes encerra a série antiga e cria uma nova a partir do mês indicado.
+- `update_purchase(p_purchase_id uuid, p_month date, ...)`, com os mesmos parâmetros de create_purchase menos p_is_recurring: só a conta dona altera; refaz divisão e parcelas. p_month é o mês de onde o usuário editou: numa recorrente que começou antes dele, a série antiga termina no mês anterior e uma nova começa em p_month (devolve o id da nova). A compra não muda entre recorrente e não recorrente. A validação fica em `check_purchase_input` (interna, mesmas regras de create_purchase).
+- `delete_purchase(p_purchase_id uuid, p_month date)`: só a conta dona; exclui a compra com divisões e parcelas, ou, numa recorrente que começou antes de p_month, só encerra no mês anterior. Devolve `removida` ou `encerrada`.
+- `add_contact_by_identifier(p_value text)` adiciona um contato por username ou código e devolve a linha do contato. A antiga `add_contact_by_share_code` foi removida.
 - `generate_share_code()` gera o código; o trigger em auth.users cria o perfil no cadastro, usando o nome enviado em display_name.
 
 ## 6. Funcionalidades
@@ -127,17 +198,23 @@ Segurança: ativar **Row Level Security (RLS)** em todas as tabelas e exigir log
 | 2 | Banco de dados: migrations 1 a 7 no Supabase | Concluído |
 | 3 | Configuração do projeto (Next.js, GitHub, Vercel, variáveis de ambiente) | Concluído |
 | 4 | Autenticação: login, cadastro e sair (primeira tela é o login) | Concluído |
-| 5 | Contatos: mostrar o código único do usuário e adicionar por código ou só por nome | Próxima |
-| 6 | Cartões | Pendente |
-| 7 | Cadastro de compras, com divisão entre usuários e parcelas | Pendente |
-| 8 | Visão em planilha (meses em colunas, blocos de compras, cartões e entradas) | Pendente |
-| 9 | Faturas reais e entradas, com a diferença entre o que entra e o que gasta | Pendente |
-| 10 | Exportar para CSV/Excel (backup) | Pendente |
+| 5 | Contatos: mostrar o código único do usuário e adicionar por código, username ou só por nome | Concluído |
+| 6 | Cartões | Concluído |
+| 7 | Cadastro de compras, com divisão entre usuários, parcelas, recorrência e categoria | Concluído |
+| 8 | Visão em planilha (meses em colunas, blocos de compras, cartões e entradas) | Concluído |
+| 9 | Faturas reais e entradas, com a diferença entre o que entra e o que gasta | Concluído |
+| 9a | Categorias de compras e entradas | Concluído |
+| 9b | Contas compartilhadas: participantes, troca de conta, cartões e compras compartilhados, compras pendentes | Concluído |
+| 9c | Destinos de entradas (parte de uma entrada para um contato ou conta compartilhada) | Concluído |
+| 9d | Editar e excluir compra, com lista de compras | Concluído |
+| 10 | Exportar para CSV/Excel (backup) | Fora do escopo (decidido em 17/11/2026) |
+| 11 | Confirmação de e-mail | Próxima |
+| 12 | Acabamento visual e navegação | Pendente |
 
 ## 7. Decisões e pontos de atenção
 
 - O plano gratuito do Supabase pausa o projeto após cerca de uma semana sem uso (reativação com um clique).
-- O plano gratuito não garante backups automáticos, por isso a exportação para CSV/Excel está no escopo.
+- O plano gratuito não garante backups automáticos. A exportação para CSV/Excel, que cobriria isso, saiu do escopo em 17/11/2026; o projeto fica sem backup próprio.
 - O plano Hobby da Vercel é restrito a uso não comercial, o que atende este caso.
 - Compras criadas por outra pessoa aparecem automaticamente para quem foi citado (com conta), somente para leitura.
 - Compras só são gravadas pela função `create_purchase`, que valida que a soma das divisões é igual ao total; as tabelas não aceitam inserts diretos.
@@ -147,21 +224,25 @@ Segurança: ativar **Row Level Security (RLS)** em todas as tabelas e exigir log
 - Autenticação por e-mail e senha. A opção Confirm email do Supabase está **desativada por enquanto**; antes de convidar outras pessoas é preciso ligá-la e criar a rota de retorno do link de confirmação.
 - A sessão é validada com `supabase.auth.getUser()` no proxy e nas páginas protegidas.
 - As telas de login e cadastro mostram mensagens fixas por código, nunca texto vindo da URL.
-- Pendências do banco: quem é citado ainda não vê o nome do cartão nem dos outros participantes (será resolvido com uma view); falta a função de editar compra.
+- Quem é citado numa compra de outra conta só lê; editar e excluir é da conta dona. Ele também não vê o cartão nem os outros participantes (seção 5).
+- Editar e excluir compras segue o padrão das entradas: lista por mês; recorrente que começou antes do mês é dividida (editar) ou encerrada (excluir), preservando os meses passados.
+- Ao editar, a divisão gravada volta como percentuais; "Você" fica automático. Salvar sem mudar nada pode mover 1 centavo entre participantes.
+- `created_by` já é gravado em compras e entradas, mas ainda não aparece em nenhuma tela.
 
 ## 8. Próximos passos
 
-1. **Parte 5, contatos:** criar a rota `/contatos` com a funcionalidade em `src/features/contacts/`: mostrar o código único do usuário, adicionar contato pelo código (chamando `add_contact_by_share_code`), adicionar contato só com nome (inserindo em contacts sem linked_user_id) e listar os contatos.
-2. **Parte 6, cartões:** cadastro e lista de cartões.
-3. **Parte 7, compras:** formulário que chama `create_purchase`, com divisão entre contatos e parcelas.
-4. **Partes 8 a 10:** visão em planilha, faturas e entradas, exportação.
-5. **Pendências técnicas:** rota de confirmação de e-mail, view com nome do cartão e dos participantes para compras compartilhadas, função de editar compra, acabamento visual das telas.
+1. **Parte 11, confirmação de e-mail:** ligar Confirm email no Supabase e criar a rota de retorno do link. Necessário antes de convidar outras pessoas.
+2. **Parte 12, acabamento visual:** navegação entre telas, estilos globais, título da página (hoje "Create Next App") e planilha legível no celular.
+3. **Pendências técnicas:** mostrar `created_by` onde fizer sentido; levar `create_purchase` a usar `check_purchase_input` (hoje a validação está repetida nas duas).
 
 ## 9. Histórico de atualizações
 
 - **08/11/2026:** documento criado; stack e regras de trabalho definidas.
 - **08/11/2026:** modelo de dados fechado e migrations 1 a 7 aplicadas no Supabase.
 - **08/11/2026:** autenticação (login, cadastro e sair) implementada e funcionando no computador e na Vercel; deploy corrigido (Framework Preset e variáveis de ambiente). Documento completado para continuar em outra ferramenta.
+- **17/11/2026:** corrigido o `npm run build`, que falhava na checagem de tipos em `src/features/ledger/queries.ts`; adicionado `await connection()` nas páginas que leem a data (`/`, `/compras/nova`, `/entradas`, `/faturas`, `/visoes/planilha`).
+- **17/11/2026:** documento atualizado com o que foi feito entre 09 e 11/11 (migrations 8 a 19, partes 5 a 9, categorias, contas compartilhadas, destinos de entradas) e com os próximos passos.
+- **17/11/2026:** regra de privacidade das compras (quem é citado vê só a própria parte; migration 20). Parte 9d: lista de compras do mês (`/compras`), edição (`/compras/[id]/editar`) e exclusão, com as funções `update_purchase` e `delete_purchase` (migration 21). Migrations 20 e 21 aplicadas e testadas: citado vê só a própria linha; editar parcelada e recorrente (divisão da série), encerrar, excluir, recusa de soma errada e bloqueio de edição/exclusão por quem foi citado. Fluxo de editar e excluir também testado pela tela.
 
 ## 10. Ambiente, variáveis e deploy
 
@@ -173,7 +254,8 @@ Segurança: ativar **Row Level Security (RLS)** em todas as tabelas e exigir log
 - **Onde ficam:** localmente no arquivo `.env.local`, na raiz do projeto (ao lado do package.json), sem aspas e sem espaços em volta do `=`; nunca vai para o Git. Na Vercel, em Settings > Environment Variables, com os mesmos nomes, como variáveis comuns (não sensíveis), nos ambientes Production, Preview e Development.
 - **Depois de mudar variáveis:** reiniciar o `npm run dev` (o Next.js só lê o arquivo ao iniciar) e, na Vercel, fazer Redeploy (as variáveis NEXT_PUBLIC_ são gravadas durante o build).
 - **Vercel:** o Framework Preset precisa ser **Next.js**, sem sobrescrever o Output Directory.
-- **Supabase:** em Authentication, a opção Confirm email está desativada por enquanto. As 7 migrations foram executadas manualmente no SQL Editor, na ordem; não executá-las de novo (dá erro de já existe). Mudanças futuras no banco entram como novas migrations numeradas, uma por arquivo.
+- **Supabase:** em Authentication, a opção Confirm email está desativada por enquanto. As migrations 1 a 21 foram executadas no SQL Editor, na ordem; não executá-las de novo (dá erro de já existe). Mudanças futuras no banco entram como novas migrations numeradas em `supabase/migrations/`, uma por arquivo, continuando a partir da 22.
+- **Contas de teste:** `supabase/migrations/contas-teste.sql` cria as contas Ana, Bruno, Carla (normais) e Casa (compartilhada), com dados de exemplo; pode ser executado mais de uma vez. No `npm run dev`, a tela de login mostra o painel "Acesso rápido" para entrar nelas (código em `src/features/dev/`); em produção o painel não funciona.
 
 ## 11. Convenções de código
 
@@ -182,7 +264,10 @@ Segurança: ativar **Row Level Security (RLS)** em todas as tabelas e exigir log
 - **Cliente Supabase no servidor:** `createClient()` de `@/lib/supabase/server` (assíncrono, usa os cookies); criar um por requisição. O cliente de navegador ainda não existe; quando for necessário, usar `createBrowserClient` do @supabase/ssr.
 - **Gravações:** Server Actions em `src/features/<funcionalidade>/actions.ts`, com `'use server'`. Em caso de erro, redirecionam com um código (`?erro=codigo`) e os textos ficam em `messages.ts`.
 - **Páginas que leem searchParams ou cookies** exportam `export const instant = false` antes do componente. Sem isso o Next.js 16.4 mostra o erro blocking-prerender-runtime e o build pode falhar. Se aparecer erro de `Date.now()` em uma página, chamar `await connection()` (de `next/server`) no início dela.
-- **Compras** são sempre criadas pela função `create_purchase`. Valores monetários em numeric(12,2); meses de referência sempre no dia 1.
+- **Páginas que leem a data de hoje** (`hojeEmSaoPaulo()`, em `src/features/purchases/calc.ts`) ou que só chamam `supabase.auth.getUser()` começam com `await connection()`.
+- **Conta ativa:** sempre usar o `createClient()` de `@/lib/supabase/server`, que envia a conta ativa ao banco. Não filtrar por `user.id` nas consultas: o RLS já filtra pela conta ativa. Atenção: em compras, o RLS também devolve as compras de outras contas em que a conta foi citada; para listar só as da conta, filtrar `owner_id` pelo id da conta ativa (de `listAccounts()`). Para os dados da conta ativa, usar a função `current_account`.
+- **Chamadas `rpc()`** devolvem `unknown` (não há tipos gerados do banco): declarar o tipo do resultado onde ele é usado.
+- **Compras** são sempre criadas pela função `create_purchase`, e entradas por `create_income`. Valores monetários em numeric(12,2); meses de referência sempre no dia 1; no código, valores em centavos.
 
 ## 12. Problemas já encontrados e soluções
 
@@ -193,4 +278,6 @@ Segurança: ativar **Row Level Security (RLS)** em todas as tabelas e exigir log
 - **Comando npm não reconhecido no terminal do VS Code:** fechar o VS Code por completo e abrir de novo (o PATH só atualiza em programas abertos depois da instalação do Node).
 - **Chave secret colada por engano:** trocar pela anon/publishable e gerar nova secret no Supabase.
 - **Avisos de prerender no Next.js 16.4:** resolvidos com `export const instant = false` nas páginas dinâmicas.
+- **Build falha com `Type 'unknown[]' is not assignable`:** sem tipos gerados do banco, `supabase.rpc()` devolve `unknown[]`. Declarar o tipo onde o dado é usado (por exemplo `shares as RawShare[]`); `.overrideTypes()` não resolve nesse caso. Rodar `npm run build` antes de subir, porque o `npm run dev` não checa tipos.
+- **Erro de `new Date()`/`Date.now()` no prerender mesmo com `instant = false`:** chamar `await connection()` na primeira linha da página. Vale também para páginas que só chamam `supabase.auth.getUser()`, que usa `Date.now()` por dentro.
 - **Success. No rows returned** no SQL Editor do Supabase é o resultado normal de comandos que criam estrutura.

@@ -16,3 +16,26 @@ export type SharedAccountOption = {
   name: string
   participants: ContactOption[]
 }
+
+// Valores iniciais do formulário ao editar uma compra
+export type PurchaseInitial = {
+  nome: string
+  cartaoId: string // '' = sem cartão
+  categoriaId: string // '' = sem categoria
+  tipo: Tipo
+  recorrente: boolean
+  data: string // AAAA-MM-DD
+  mes: string // AAAA-MM
+  parcelas: string
+  valor: string // total em reais, com 2 casas
+  descricao: string
+  contaCompartilhadaId: string // '' = nenhuma
+  participantes: Participant[]
+}
+
+export type PurchaseEdit = {
+  id: string
+  mesLista: string // mês da lista de compras de onde o usuário veio
+  aviso: string | null // explicação mostrada no topo do formulário
+  inicial: PurchaseInitial
+}

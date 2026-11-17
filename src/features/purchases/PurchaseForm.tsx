@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { createPurchase } from './actions'
+import { createPurchase, updatePurchase } from './actions'
 import {
   LIMITE_CENTAVOS,
   addMonths,
@@ -19,6 +19,7 @@ import type {
   CategoryOption,
   ContactOption,
   Participant,
+  PurchaseEdit,
   SharedAccountOption,
   Tipo,
 } from './types'
@@ -31,6 +32,7 @@ type Props = {
   contasCompartilhadas: SharedAccountOption[]
   contaCompartilhada: boolean
   hoje: string
+  edicao?: PurchaseEdit // presente ao editar uma compra existente
 }
 
 export function PurchaseForm({
@@ -40,22 +42,25 @@ export function PurchaseForm({
   contasCompartilhadas,
   contaCompartilhada,
   hoje,
+  edicao,
 }: Props) {
-  const [nome, setNome] = useState('')
-  const [cartaoId, setCartaoId] = useState(cards[0]?.id ?? '')
-  const [categoriaId, setCategoriaId] = useState('')
-  const [tipoEscolhido, setTipoEscolhido] = useState<Tipo>('avista')
-  const [recorrente, setRecorrente] = useState(false)
-  const [data, setData] = useState(hoje)
-  const [mesManual, setMesManual] = useState<string | null>(null)
-  const [parcelas, setParcelas] = useState('2')
+  const inicial = edicao?.inicial
+  const [nome, setNome] = useState(inicial?.nome ?? '')
+  const [cartaoId, setCartaoId] = useState(inicial ? inicial.cartaoId : (cards[0]?.id ?? ''))
+  const [categoriaId, setCategoriaId] = useState(inicial?.categoriaId ?? '')
+  const [tipoEscolhido, setTipoEscolhido] = useState<Tipo>(inicial?.tipo ?? 'avista')
+  const [recorrente, setRecorrente] = useState(inicial?.recorrente ?? false)
+  const [data, setData] = useState(inicial?.data ?? hoje)
+  const [mesManual, setMesManual] = useState<string | null>(inicial?.mes ?? null)
+  const [parcelas, setParcelas] = useState(inicial?.parcelas ?? '2')
   const [base, setBase] = useState<Base>('total')
-  const [valorBase, setValorBase] = useState('')
-  const [descricao, setDescricao] = useState('')
-  const [contaCompartilhadaId, setContaCompartilhadaId] = useState('')
+  const [valorBase, setValorBase] = useState(inicial?.valor ?? '')
+  const [descricao, setDescricao] = useState(inicial?.descricao ?? '')
+  const [contaCompartilhadaId, setContaCompartilhadaId] = useState(inicial?.contaCompartilhadaId ?? '')
   // Conta compartilhada não entra na divisão: a compra pertence aos participantes escolhidos
   const [participantes, setParticipantes] = useState<Participant[]>(
-    contaCompartilhada ? [] : [{ id: 'eu', contactId: null, name: 'Você', manual: null }],
+    inicial?.participantes ??
+      (contaCompartilhada ? [] : [{ id: 'eu', contactId: null, name: 'Você', manual: null }]),
   )
 
   // Compra recorrente se comporta como uma cobrança única por mês (sem parcelas)
@@ -168,7 +173,14 @@ export function PurchaseForm({
   )
 
   return (
-    <form action={createPurchase} className={styles.form}>
+    <form action={edicao ? updatePurchase : createPurchase} className={styles.form}>
+      {edicao && (
+        <>
+          <input type="hidden" name="id" value={edicao.id} />
+          <input type="hidden" name="mes_lista" value={edicao.mesLista} />
+          {edicao.aviso && <p className={styles.dica}>{edicao.aviso}</p>}
+        </>
+      )}
       <input type="hidden" name="mes" value={mes} />
       <input type="hidden" name="base" value={tipo === 'parcelado' ? base : 'total'} />
       <input type="hidden" name="valor" value={valorBase} />
@@ -225,8 +237,10 @@ export function PurchaseForm({
             type="checkbox"
             checked={recorrente}
             onChange={(e) => mudarRecorrente(e.target.checked)}
+            disabled={edicao !== undefined}
           />
           Compra recorrente (todo mês, sem mês final)
+          {edicao && ' · não muda na edição'}
         </label>
 
         {!recorrente && (
@@ -335,7 +349,7 @@ export function PurchaseForm({
       </section>
 
       <SubmitButton className={styles.button} disabled={!podeSalvar}>
-        Salvar compra
+        {edicao ? 'Salvar alterações' : 'Salvar compra'}
       </SubmitButton>
     </form>
   )
